@@ -1,7 +1,7 @@
 import { killCli, spawnCli } from './spawn-cli.js';
 import { promptInputForPlatform } from './types.js';
 import { createInterface } from 'node:readline';
-import type { CliAdapter, CliRunResult } from './types.js';
+import type { CliAdapter, CliEvent, CliRunResult } from './types.js';
 
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -12,6 +12,7 @@ export interface RunCliOptions {
   sessionId?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
+  onEvent?: (event: CliEvent) => void;
 }
 
 export function runCli(options: RunCliOptions): Promise<CliRunResult> {
@@ -22,6 +23,7 @@ export function runCli(options: RunCliOptions): Promise<CliRunResult> {
     sessionId,
     signal,
     timeoutMs = DEFAULT_TIMEOUT_MS,
+    onEvent,
   } = options;
   // Windows 下 prompt 走 stdin（规避 cmd 转义/乱码），其他平台直接作为命令行参数。
   const promptInput = promptInputForPlatform(process.platform);
@@ -47,6 +49,8 @@ export function runCli(options: RunCliOptions): Promise<CliRunResult> {
     signal?.addEventListener('abort', () => killCli(child), { once: true });
     const lines = createInterface({ input: child.stdout });
     let observedSessionId = sessionId;
+    let observedAnswer: string | undefined;
+    let observedStats: CliRunResult["stats"];
     let finalResult: CliRunResult | undefined;
     let resultError: Error | undefined;
     let stderr = '';
@@ -67,18 +71,25 @@ export function runCli(options: RunCliOptions): Promise<CliRunResult> {
     };
 
     lines.on('line', (line) => {
-      const event = adapter.parseEvent(line);
-      if (!event) return;
-      if (event.sessionId) observedSessionId = event.sessionId;
-      if (event.type === 'error') {
-        resultError = new Error(event.message);
-        return;
-      }
-      if (event.type === 'result') {
-        finalResult = {
-          answer: event.answer,
-          sessionId: event.sessionId ?? observedSessionId,
-        };
+      for (const event of adapter.parseEvents(line)) {
+        onEvent?.(event);
+        if ('sessionId' in event && event.sessionId) {
+          observedSessionId = event.sessionId;
+        }
+        if (event.type === 'error') {
+          resultError = new Error(event.message);
+          continue;
+        }
+        if (event.type === "result") {
+          if (event.answer) observedAnswer = event.answer;
+          if (event.stats) observedStats = event.stats;
+          if (!observedAnswer) continue;
+          finalResult = {
+            answer: observedAnswer,
+            sessionId: event.sessionId ?? observedSessionId,
+            ...(observedStats ? { stats: observedStats } : {}),
+          };
+        }
       }
     });
 
