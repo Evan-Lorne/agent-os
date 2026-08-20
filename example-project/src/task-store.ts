@@ -19,4 +19,11 @@ export class TaskStore {
   list(): Task[] {
     return [...this.tasks.values()].map((task) => ({ ...task }));
   }
+
+  complete(id: string): Task {
+    const task = this.tasks.get(id);
+    if (!task) throw new Error(`找不到任务: ${id}`);
+    task.completed = true;
+    return { ...task };
+  }
 }

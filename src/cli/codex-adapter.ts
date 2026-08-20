@@ -114,7 +114,7 @@ export class CodexAdapter implements CliAdapter {
       '--skip-git-repo-check',
       sessionId,
     ];
-    // Windows 上沙箱功能不支持，必须完全禁用。
+    // Windows 上沙箱功能不支持，必须完全禁用；approvals 也一并绕过。
     if (process.platform === 'win32') {
       args.push('--dangerously-bypass-approvals-and-sandbox');
     } else {
@@ -123,6 +123,15 @@ export class CodexAdapter implements CliAdapter {
     // 从 stdin 读取 prompt，规避 Windows 下 shell 参数转义问题。
     args.push(promptInput === 'stdin' ? '-' : prompt);
     return args;
+  }
+
+  buildCompactPlan(sessionId: string) {
+    return {
+      protocol: 'codex-app-server' as const,
+      command: this.command,
+      args: ['app-server', '--stdio'],
+      sessionId,
+    };
   }
 
   parseEvents(line: string): CliEvent[] {
