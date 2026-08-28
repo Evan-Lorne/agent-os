@@ -1,5 +1,9 @@
 import { promptInputForPlatform } from './types.js';
 import type { CliAdapter, CliPromptInput, CliEvent, CliRunStats } from './types.js';
+import {
+  CLAUDE_CLARIFICATION_TOOL_NAME,
+  claudeAppToolArgs,
+} from './app-tools.js';
 
 interface ClaudeEvent {
   type?: unknown;
@@ -124,6 +128,7 @@ function outputArgs(prompt: string, promptInput: CliPromptInput): string[] {
     '--output-format',
     'stream-json',
     '--verbose',
+    ...claudeAppToolArgs(),
   ];
 }
 
@@ -184,13 +189,22 @@ export class ClaudeAdapter implements CliAdapter {
           || typeof block.name !== 'string'
         ) return [];
         const detail = toolDetail(block.name, block.input);
-        return [{
+        const events: CliEvent[] = [{
           type: 'tool_start',
           toolUseId: block.id,
           toolName: block.name,
           label: TOOL_LABELS[block.name] ?? `调用 ${block.name}`,
           ...(detail ? { detail } : {}),
         }];
+        if (block.name === CLAUDE_CLARIFICATION_TOOL_NAME) {
+          events.push({
+            type: 'tool_call',
+            toolUseId: block.id,
+            toolName: 'request_clarification',
+            input: block.input,
+          });
+        }
+        return events;
       });
       return [...contextEvent, ...toolEvents];
     }
