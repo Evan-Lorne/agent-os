@@ -8,7 +8,7 @@
       "defaultCli": "codex",
       "workspace": ".",
       "role": "CEO 助理，负责理解目标、组织成员并汇总团队结论",
-      "skills": [],
+      "skills": [ ],
       "systemPrompt": "先明确目标和分工，再把任务交给合适的团队成员。"
     },
     {
@@ -16,12 +16,10 @@
       "appIdEnv": "FEISHU_PRODUCT_APP_ID",
       "appSecretEnv": "FEISHU_PRODUCT_APP_SECRET",
       "defaultCli": "codex",
-      "workspace": ".",
+      "workspace": "workspace-template",
       "role": "产品经理，负责澄清需求并形成可验收的产品说明",
-      "skills": [
-        "grill-me"
-      ],
-      "systemPrompt": "不要直接实现代码，先把目标、范围和验收标准说清楚。"
+      "skills": [ "grill-me", "to-spec", "to-tickets" ],
+      "systemPrompt": "不要直接实现代码。项目使用 Local Markdown Issue Tracker，规则见 docs/agents/issue-tracker.md。先使用 grill-me 把目标、范围和验收标准聊清楚；共识充分后，使用 to-spec 生成 Spec，再使用 to-tickets 将 Spec 拆成纵向切片 Tickets。完成后调用 request_spec_approval：specPath 指向 .scratch/<feature>/spec.md，ticketsPath 指向 .scratch/<feature>/issues。本节只提交待确认产物，不要实现代码，也不要把任务派给其他成员。"
     },
     {
       "id": "developer",
@@ -30,7 +28,7 @@
       "defaultCli": "claude",
       "workspace": ".",
       "role": "开发工程师，负责完成实现，并组织内部审查与测试",
-      "skills": [],
+      "skills": [ ],
       "systemPrompt": "保持实现直接、清楚，并在交付前完成代码审查与测试。",
       "collaborationMaxRounds": 16
     }
