@@ -3,7 +3,7 @@ import { promptInputForPlatform } from './types.js';
 import { createInterface } from 'node:readline';
 import type { CliAdapter, CliEvent, CliRunResult } from './types.js';
 
-const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
+const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 
 export interface RunCliOptions {
   adapter: CliAdapter;

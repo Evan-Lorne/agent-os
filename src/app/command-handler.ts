@@ -68,6 +68,7 @@ export async function handleSessionCommand(options: {
         "/help 查看命令",
         "/claude <任务> 新话题使用 Claude Code",
         "/codex <任务> 新话题使用 Codex",
+        "/switch <claude|codex> 仅切换当前话题的执行引擎",
       ].join("\n"),
       hasThread,
     );
@@ -91,6 +92,38 @@ export async function handleSessionCommand(options: {
           };
         }),
       }),
+      hasThread,
+    );
+    return "handled";
+  }
+
+  if (command?.name === "switch") {
+    if (session.status === "active") {
+      await bot.reply(
+        msg.messageId,
+        "当前任务执行结束后才能切换执行引擎。",
+        hasThread,
+      );
+      return "handled";
+    }
+    if (session.status === "closed") {
+      await bot.reply(msg.messageId, "当前话题的会话已经关闭。", hasThread);
+      return "handled";
+    }
+    const targetAdapter = getCliAdapter(command.cliId);
+    if (session.cliId === command.cliId) {
+      await bot.reply(
+        msg.messageId,
+        `当前话题已经在使用 ${targetAdapter.displayName}。`,
+        hasThread,
+      );
+      return "handled";
+    }
+    await runtime.sessions.setCliId(session.id, command.cliId);
+    runtime.contextWindows.delete(session.id);
+    await bot.reply(
+      msg.messageId,
+      `执行引擎已切换为 ${targetAdapter.displayName}，原 ${cliAdapter.displayName} 的 CLI 会话不再复用。下一条任务将由 ${targetAdapter.displayName} 全新执行。`,
       hasThread,
     );
     return "handled";

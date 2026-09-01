@@ -153,6 +153,28 @@ export class SessionManager {
     return this.updateCliSelection(sessionId, cliSessionId);
   }
 
+  async setCliId(sessionId: string, cliId: CliId): Promise<Session> {
+    const current = this.get(sessionId);
+    if (!current) throw new Error(`会话不存在: ${sessionId}`);
+    if (current.cliId === cliId) return current;
+
+    const { cliSessionId: _previousCliSessionId, ...rest } = current;
+    const updated: Session = {
+      ...rest,
+      cliId,
+      updatedAt: this.now().toISOString(),
+    };
+    const key = sessionKey(updated.botId, updated.chatId, updated.threadId);
+    this.sessions.set(key, updated);
+    try {
+      await this.persist();
+    } catch (error) {
+      if (this.sessions.get(key) === updated) this.sessions.set(key, current);
+      throw error;
+    }
+    return updated;
+  }
+
   async clearCliSessionId(sessionId: string): Promise<Session> {
     return this.updateCliSelection(sessionId, undefined);
   }

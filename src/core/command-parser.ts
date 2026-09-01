@@ -3,11 +3,13 @@ import type { CliId } from '../cli/types.js';
 export type SlashCommand =
   | { name: 'close' | 'status' | 'help' | 'new' | 'resume' | 'team' }
   | { name: 'compact'; instructions?: string }
-  | { name: 'cd'; path?: string };
+  | { name: 'cd'; path?: string }
+  | { name: 'switch'; cliId: CliId };
 
 const COMMAND_RE = /^(?:@.+?\s+)?\/(close|status|help|new|resume|team)\s*$/;
 const CD_RE = /^(?:@.+?\s+)?\/cd(?:\s+([\s\S]+?))?\s*$/;
 const COMPACT_RE = /^(?:@.+?\s+)?\/compact(?:\s+([\s\S]+?))?\s*$/;
+const SWITCH_RE = /^(?:@.+?\s+)?\/switch\s+(claude|codex)\s*$/;
 const CLI_REQUEST_RE = /^(?:@.+?\s+)?\/(claude|codex)(?:\s+([\s\S]*))?$/;
 
 export function parseCommand(text: string): SlashCommand | undefined {
@@ -21,6 +23,8 @@ export function parseCommand(text: string): SlashCommand | undefined {
       instructions: compactMatch[1]?.trim() || undefined,
     };
   }
+  const switchMatch = SWITCH_RE.exec(value);
+  if (switchMatch) return { name: 'switch', cliId: switchMatch[1] as CliId };
   const match = COMMAND_RE.exec(value);
   if (!match) return undefined;
   return {
