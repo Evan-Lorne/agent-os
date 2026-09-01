@@ -4,16 +4,23 @@ export type SlashCommand =
   | { name: 'close' | 'status' | 'help' | 'new' | 'resume' | 'team' }
   | { name: 'compact'; instructions?: string }
   | { name: 'cd'; path?: string }
-  | { name: 'switch'; cliId: CliId };
+  | { name: 'schedules' }
+  | { name: 'schedule'; request?: string };
 
 const COMMAND_RE = /^(?:@.+?\s+)?\/(close|status|help|new|resume|team)\s*$/;
 const CD_RE = /^(?:@.+?\s+)?\/cd(?:\s+([\s\S]+?))?\s*$/;
 const COMPACT_RE = /^(?:@.+?\s+)?\/compact(?:\s+([\s\S]+?))?\s*$/;
-const SWITCH_RE = /^(?:@.+?\s+)?\/switch\s+(claude|codex)\s*$/;
+const SCHEDULE_RE = /^(?:@.+?\s+)?\/schedule(?:\s+([\s\S]+?))?\s*$/;
+const SCHEDULES_RE = /^(?:@.+?\s+)?\/schedules\s*$/;
 const CLI_REQUEST_RE = /^(?:@.+?\s+)?\/(claude|codex)(?:\s+([\s\S]*))?$/;
 
 export function parseCommand(text: string): SlashCommand | undefined {
   const value = text.trim();
+  if (SCHEDULES_RE.test(value)) return { name: 'schedules' };
+  const scheduleMatch = SCHEDULE_RE.exec(value);
+  if (scheduleMatch) {
+    return { name: 'schedule', request: scheduleMatch[1]?.trim() || undefined };
+  }
   const cdMatch = CD_RE.exec(value);
   if (cdMatch) return { name: 'cd', path: cdMatch[1]?.trim() || undefined };
   const compactMatch = COMPACT_RE.exec(value);
@@ -23,8 +30,6 @@ export function parseCommand(text: string): SlashCommand | undefined {
       instructions: compactMatch[1]?.trim() || undefined,
     };
   }
-  const switchMatch = SWITCH_RE.exec(value);
-  if (switchMatch) return { name: 'switch', cliId: switchMatch[1] as CliId };
   const match = COMMAND_RE.exec(value);
   if (!match) return undefined;
   return {

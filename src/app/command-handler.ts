@@ -2,6 +2,7 @@ import type { Bot, IncomingMessage } from "../im/lark.js";
 import {
   buildResumeCard,
   buildSessionNoticeCard,
+  buildScheduleListCard,
   buildTeamCard,
 } from "../im/card.js";
 import type { CliAdapter } from "../cli/types.js";
@@ -16,11 +17,13 @@ import {
 } from "../core/workspace.js";
 import { formatSessionStatus } from "./session-view.js";
 import type { AppRuntime } from "./runtime.js";
+import type { Scheduler } from "./scheduler.js";
 
 export type CommandOutcome = "handled" | "continue";
 
 export async function handleSessionCommand(options: {
   runtime: AppRuntime;
+  scheduler: Scheduler;
   config: BotConfig;
   msg: IncomingMessage;
   bot: Bot;
@@ -33,6 +36,7 @@ export async function handleSessionCommand(options: {
 }): Promise<CommandOutcome> {
   const {
     runtime,
+    scheduler,
     config,
     msg,
     bot,
@@ -59,6 +63,12 @@ export async function handleSessionCommand(options: {
       [
         "/status 查看当前会话",
         "/team 查看当前 Agent 团队",
+        "/schedule <需求> 创建定时任务",
+        "/schedules 查看定时任务",
+        "/schedule pause <id> 暂停定时任务",
+        "/schedule resume <id> 恢复定时任务",
+        "/schedule delete <id> 删除定时任务",
+        "/schedule run <id> 立即执行定时任务",
         "/new 开启一个全新的 CLI 会话",
         "/resume 选择当前工作目录中的 CLI 会话",
         "/compact [要求] 使用当前引擎原生整理上下文",
@@ -68,7 +78,6 @@ export async function handleSessionCommand(options: {
         "/help 查看命令",
         "/claude <任务> 新话题使用 Claude Code",
         "/codex <任务> 新话题使用 Codex",
-        "/switch <claude|codex> 仅切换当前话题的执行引擎",
       ].join("\n"),
       hasThread,
     );
@@ -97,36 +106,71 @@ export async function handleSessionCommand(options: {
     return "handled";
   }
 
-  if (command?.name === "switch") {
-    if (session.status === "active") {
-      await bot.reply(
-        msg.messageId,
-        "当前任务执行结束后才能切换执行引擎。",
-        hasThread,
-      );
-      return "handled";
-    }
-    if (session.status === "closed") {
-      await bot.reply(msg.messageId, "当前话题的会话已经关闭。", hasThread);
-      return "handled";
-    }
-    const targetAdapter = getCliAdapter(command.cliId);
-    if (session.cliId === command.cliId) {
-      await bot.reply(
-        msg.messageId,
-        `当前话题已经在使用 ${targetAdapter.displayName}。`,
-        hasThread,
-      );
-      return "handled";
-    }
-    await runtime.sessions.setCliId(session.id, command.cliId);
-    runtime.contextWindows.delete(session.id);
-    await bot.reply(
+  if (command?.name === "schedules") {
+    await bot.replyCard(
       msg.messageId,
-      `执行引擎已切换为 ${targetAdapter.displayName}，原 ${cliAdapter.displayName} 的 CLI 会话不再复用。下一条任务将由 ${targetAdapter.displayName} 全新执行。`,
+      buildScheduleListCard(scheduler.list()),
       hasThread,
     );
     return "handled";
+  }
+
+  if (command?.name === "schedule" && !command.request) {
+    await bot.reply(
+      msg.messageId,
+      [
+        "用法：/schedule <需求>",
+        "例如：/schedule 每小时检查一次服务日志",
+        "管理：/schedules、/schedule pause <id>、/schedule resume <id>、/schedule delete <id>、/schedule run <id>",
+      ].join("\n"),
+      hasThread,
+    );
+    return "handled";
+  }
+
+  if (command?.name === "schedule" && command.request) {
+    const request = command.request;
+    const pause = /^pause\s+([a-z0-9_-]+)$/i.exec(request);
+    const resume = /^resume\s+([a-z0-9_-]+)$/i.exec(request);
+    const remove = /^delete\s+([a-z0-9_-]+)$/i.exec(request);
+    const run = /^run\s+([a-z0-9_-]+)$/i.exec(request);
+    if (pause) {
+      const task = scheduler.pause(pause[1]);
+      await bot.reply(
+        msg.messageId,
+        task ? `定时任务 ${task.id} 已暂停。` : "没有找到这个定时任务。",
+        hasThread,
+      );
+      return "handled";
+    }
+    if (resume) {
+      const task = scheduler.resume(resume[1]);
+      await bot.reply(
+        msg.messageId,
+        task ? `定时任务 ${task.id} 已恢复。` : "没有找到这个定时任务。",
+        hasThread,
+      );
+      return "handled";
+    }
+    if (remove) {
+      const deleted = scheduler.delete(remove[1]);
+      await bot.reply(
+        msg.messageId,
+        deleted ? `定时任务 ${remove[1]} 已删除。` : "没有找到这个定时任务。",
+        hasThread,
+      );
+      return "handled";
+    }
+    if (run) {
+      const task = await scheduler.runNow(run[1]);
+      await bot.reply(
+        msg.messageId,
+        task ? `定时任务 ${task.id} 已触发执行。` : "没有找到这个定时任务。",
+        hasThread,
+      );
+      return "handled";
+    }
+    return "continue";
   }
 
   if (command?.name === "new") {

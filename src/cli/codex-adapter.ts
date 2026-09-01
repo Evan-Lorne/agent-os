@@ -3,6 +3,7 @@ import {
   CLARIFICATION_TOOL_NAME,
   PRODUCT_SPEC_TOOL_NAME,
   DISPATCH_TASK_TOOL_NAME,
+  SCHEDULE_MANAGE_TOOL_NAME,
   codexAppToolArgs,
 } from './app-tools.js';
 
@@ -82,6 +83,11 @@ function parseStats(usage: unknown): CliRunStats | undefined {
     : undefined;
 }
 
+function codexModelArgs(): string[] {
+  const model = process.env.CODEX_MODEL?.trim();
+  return model ? ['-c', `model=${JSON.stringify(model)}`] : [];
+}
+
 function errorMessage(event: CodexEvent): string {
   if (typeof event.message === 'string') return event.message;
   if (isRecord(event.error) && typeof event.error.message === 'string') {
@@ -98,6 +104,7 @@ export class CodexAdapter implements CliAdapter {
   buildArgs(prompt: string, promptInput: CliPromptInput): string[] {
     const args = [
       ...codexAppToolArgs(),
+      ...codexModelArgs(),
       'exec',
       '--json',
       '--skip-git-repo-check',
@@ -116,6 +123,7 @@ export class CodexAdapter implements CliAdapter {
   buildResumeArgs(prompt: string, sessionId: string, promptInput: CliPromptInput): string[] {
     const args = [
       ...codexAppToolArgs(),
+      ...codexModelArgs(),
       'exec',
       'resume',
       '--json',
@@ -137,7 +145,7 @@ export class CodexAdapter implements CliAdapter {
     return {
       protocol: 'codex-app-server' as const,
       command: this.command,
-      args: ['app-server', '--stdio'],
+      args: ['app-server', '--stdio', ...codexModelArgs()],
       sessionId,
     };
   }
@@ -186,6 +194,7 @@ export class CodexAdapter implements CliAdapter {
           item.tool === CLARIFICATION_TOOL_NAME
           || item.tool === PRODUCT_SPEC_TOOL_NAME
           || item.tool === DISPATCH_TASK_TOOL_NAME
+          || item.tool === SCHEDULE_MANAGE_TOOL_NAME
         )
       ) {
         events.push({
