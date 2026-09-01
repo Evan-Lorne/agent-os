@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>用户分组管理</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">◇</span><span>Atlas Console</span></div>
+        <div class="topbar-actions">
+          <label class="role-switcher">当前身份
+            <select id="roleSelect" aria-label="当前身份">
+              <option value="manager">分组管理员</option>
+              <option value="viewer">只读查看者</option>
+              <option value="none">无查看权限</option>
+            </select>
+          </label>
+          <div class="avatar">林</div>
+        </div>
+      </header>
+
+      <main id="app" class="content"></main>
+    </div>
+
+    <div id="modalRoot"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
