@@ -3,7 +3,15 @@ import { promptInputForPlatform } from './types.js';
 import { createInterface } from 'node:readline';
 import type { CliAdapter, CliEvent, CliRunResult } from './types.js';
 
-const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
+const DEFAULT_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+
+function envTimeoutMs(adapter: CliAdapter): number | undefined {
+  const raw = process.env[`${adapter.id.toUpperCase()}_TIMEOUT_MS`]
+    ?? process.env.CLI_TIMEOUT_MS;
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
 
 export interface RunCliOptions {
   adapter: CliAdapter;
@@ -22,7 +30,7 @@ export function runCli(options: RunCliOptions): Promise<CliRunResult> {
     cwd,
     sessionId,
     signal,
-    timeoutMs = DEFAULT_TIMEOUT_MS,
+    timeoutMs = envTimeoutMs(adapter) ?? DEFAULT_TIMEOUT_MS,
     onEvent,
   } = options;
   // Windows 下 prompt 走 stdin（规避 cmd 转义/乱码），其他平台直接作为命令行参数。
@@ -50,7 +58,7 @@ export function runCli(options: RunCliOptions): Promise<CliRunResult> {
     const lines = createInterface({ input: child.stdout });
     let observedSessionId = sessionId;
     let observedAnswer: string | undefined;
-    let observedStats: CliRunResult["stats"];
+    let observedStats: CliRunResult['stats'];
     const observedToolCalls = new Map<
       string,
       NonNullable<CliRunResult['toolCalls']>[number]
@@ -92,7 +100,7 @@ export function runCli(options: RunCliOptions): Promise<CliRunResult> {
           observedToolCalls.delete(event.toolUseId);
           continue;
         }
-        if (event.type === "result") {
+        if (event.type === 'result') {
           if (event.answer) observedAnswer = event.answer;
           if (event.stats) observedStats = event.stats;
           if (!observedAnswer) continue;

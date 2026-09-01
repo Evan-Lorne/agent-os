@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import type { CollaborationOrigin } from './collaboration.js';
 
 const OptionSchema = z.object({
   id: z.string().regex(/^[a-z0-9_-]{1,32}$/),
@@ -48,6 +49,7 @@ export interface ClarificationFlow {
   sessionId: string;
   ownerOpenId: string;
   ownerUnionId?: string;
+  collaboration?: CollaborationOrigin;
   originalMessageId: string;
   cardMessageId?: string;
   replyInThread: boolean;
@@ -62,6 +64,7 @@ export interface CreateClarificationFlowOptions {
   sessionId: string;
   ownerOpenId: string;
   ownerUnionId?: string;
+  collaboration?: CollaborationOrigin;
   originalMessageId: string;
   cardMessageId?: string;
   replyInThread: boolean;
