@@ -1,11 +1,12 @@
-import type { Bot, BotIdentity } from "../im/lark.js";
-import type { ActiveRun } from "../core/task-abort.js";
-import type { BotConfig } from "../core/bot-registry.js";
-import type { CollaborationInbox } from "../core/collaboration.js";
+import type { Bot, BotIdentity } from '../im/lark.js';
+import type { ActiveRun } from '../core/task-abort.js';
+import type { BotConfig } from '../core/bot-registry.js';
+import type { CollaborationInbox } from '../core/collaboration.js';
 import type { ClarificationFlowStore } from '../core/clarification.js';
 import type { ProductSpecFlowStore } from '../core/product-spec.js';
-import type { SessionManager } from "../core/session-manager.js";
-import type { TeamRegistry } from "../core/team-registry.js";
+import type { ApprovalFlowStore } from '../core/approval.js';
+import type { SessionManager } from '../core/session-manager.js';
+import type { TeamRegistry } from '../core/team-registry.js';
 
 export interface BotRuntime {
   config: BotConfig;
@@ -23,4 +24,5 @@ export interface AppRuntime {
   collaborationInbox: CollaborationInbox;
   clarificationFlows: ClarificationFlowStore;
   productSpecFlows: ProductSpecFlowStore;
+  approvalFlows: ApprovalFlowStore;
 }
